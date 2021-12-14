@@ -58,17 +58,17 @@ movieSortedByNumRatings = arrange(ratingsPerMovie, desc(ratingsPerMovie$ratings_
 
 # Function to get recommended movie based on genre
 
-getRecommendedGenreMovies = function(genre = "Drama", sortBy = "Average Rating") {
+getRecommendedGenreMovies = function(genre = "", sortBy = "Average Rating") {
   sortedMovies = movieSortedByAvgRatings
   
   if (sortBy == "Popularity") {
     sortedMovies = movieSortedByNumRatings
   }
   
-  cat(sortBy)
-  cat(genre)
-  
-  idx = which(grepl(genre, sortedMovies$Genres))[1:20]
+  idx = 1:20
+  if (genre != "") {
+    idx = which(grepl(genre, sortedMovies$Genres))[1:20]
+  }
   sortedMovies[idx, ]
 }
 

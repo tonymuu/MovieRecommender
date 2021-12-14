@@ -1,8 +1,75 @@
-# All the code in this file needs to be copied to your Shiny app, and you need
-# to call `withBusyIndicatorUI()` and `withBusyIndicatorServer()` in your app.
-# You can also include the `appCSS` in your UI, as the example app shows.
+withConsoleRedirect = function(containerId, expr) {
+  # Change type="output" to type="message" to catch stderr
+  # (messages, warnings, and errors) instead of stdout.
+  txt <- capture.output(results <- expr, type = "output")
+  if (length(txt) > 0) {
+    insertUI(paste0("#", containerId), where = "beforeEnd",
+             ui = paste0(txt, "\n", collapse = "")
+    )
+  }
+  results
+}
 
-# =============================================
+
+#############################################################################
+#################### UI Helpers #############################################
+#############################################################################
+num_rows <- 6
+num_movies <- 3
+
+getCurrentIndex = function(i, j) {
+  (i - 1) * num_movies + j
+}
+
+getMovieTiles = function(recom_result) {
+  lapply(1:num_rows, function(i) {
+    list(
+      fluidRow(
+        br(),
+        lapply(1:num_movies, function(j) {
+          idx = getCurrentIndex(i, j)
+          apputils::infoBox(
+            recom_result$Genres[idx],
+            value = recom_result$Title[idx],
+            subtitle = paste(round(recom_result$ave_ratings[idx], digits = 1), "/ 5.0 out of ", recom_result$ratings_per_movie[idx]," reviews"),
+            icon = apputils::icon(list(src = recom_result$image_url[idx]), class = "my-icon-123", lib = "local"),
+            fill = TRUE,
+            color = "white",
+            width = 4
+          )
+        }),
+        br()
+      )
+    ) # columns
+  }) # rows
+}
+
+getMovieRatingTiles = function(recom_result) {
+  lapply(1:num_rows, function(i) {
+    list(
+      fluidRow(
+        br(),
+        lapply(1:num_movies, function(j) {
+          idx = getCurrentIndex(i, j)
+          apputils::infoBox(
+            recom_result$Genres[idx],
+            value = recom_result$Title[idx],
+            subtitle = div(
+              style = "color: #f0ad4e;",
+              ratingInput(paste0("select_", recom_result$MovieID[idx]), label = "", dataStop = 5)
+            ),
+            icon = apputils::icon(list(src = recom_result$image_url[idx]), class = "my-icon-123", lib = "local"),
+            fill = TRUE,
+            color = "white",
+            width = 4
+          )
+        }),
+        br()
+      )
+    ) # columns
+  }) # rows
+}
+
 
 # Set up a button to have an animated loading indicator and a checkmark
 # for better user experience

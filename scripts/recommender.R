@@ -35,32 +35,17 @@ rec_UBCF = Recommender(Rmat, method = 'UBCF',
 ###########################################################################
 ############ Using only top 100 to reduce loading time ####################
 ###########################################################################
-rec_IBCF = Recommender(Rmat[1:100,], method = 'IBCF',
-                       parameter = list(normalize = 'Z-score', 
+rec_IBCF = Recommender(Rmat[1:1000,], method = 'IBCF',
+                       parameter = list(normalize = 'Z-score',
                                         method = 'Cosine', verbose = TRUE,
                                         nn = 25))
+#rec_IBCF = rec_UBCF
 
 # Create a new user
 movieIDs = colnames(Rmat)
 n.item = ncol(Rmat)
 # length(unique(ratings$MovieID)) # as as n.item
-new.ratings = rep(NA, n.item)
-new.ratings[which(movieIDs == "m1193")] = 5
-new.ratings[which(movieIDs == "m661")] = 3
-new.ratings[which(movieIDs == "m76")] = 1
-new.ratings[which(movieIDs == "m2106")] = 2
-new.ratings[which(movieIDs == "m2804")] = 2
-new.ratings[which(movieIDs == "m919")] = 4
-new.user = matrix(new.ratings, 
-                  nrow=1, ncol=n.item,
-                  dimnames = list(
-                    user=paste('feng'),
-                    item=movieIDs
-                  ))
-new.Rmat = as(new.user, 'realRatingMatrix')
 
-pred = predict(rec_UBCF, new.Rmat, type = "ratings")
-as(pred, "matrix")[order(as(pred, "matrix"), decreasing = TRUE)[1:10]]
 
 # new.ratings is n by 2 matrix where first col is movieId and second col is user ratings
 # method is either UBCF or IBCF
@@ -79,9 +64,18 @@ getRecommendedMovies = function(new.ratings, method = "UBCF") {
     mod = rec_IBCF
   }
   
-  pred = predict(mod, new.Rmat, type = "ratings")
+  pred = predict(mod, new.Rmat, type = "topN")
   pred.top = as(pred, "matrix")[,order(as(pred, "matrix"), decreasing = TRUE)[1:20]]
   pred.movieids = names(pred.top)
   
-  sub('.', '', pred.movieids)
+  pred.movieids = sub('.', '', pred.movieids)
+  idx = which(ratingsPerMovie$MovieID %in% pred.movieids)
+  cat(paste(idx))
+  cat("\n")
+  cat(paste(pred.movieids))
+  cat("\n")
+  cat(paste(ratingsPerMovie$Title[pred.movieids]))
+  ratingsPerMovie[idx, ]
 }
+
+

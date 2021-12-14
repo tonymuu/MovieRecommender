@@ -14,6 +14,7 @@ tab1 = tabItem(
   "system-1",
   fillPage(
     box(
+      class = "rateitems",
       title = "Top Movies",
       width = 12,
       solidHeader = T,
@@ -26,11 +27,11 @@ tab1 = tabItem(
         "",
         value = "How to use this app",
         subtitle = "Select genre from dropdown list, and select sort by method, the movie recommendations will be displayed automatically!",
-        icon = icon("thumbs-up"),
+        icon = icon("lightbulb"),
       ),
       box(
         width = 12,
-        uiOutput('debug')
+        uiOutput('recommendationResults1')
       )
     ),
   )
@@ -38,24 +39,30 @@ tab1 = tabItem(
 
 tab2 = tabItem(
   "system-2",
-  fluidRow(
-    box(width = 12, title = "System 2: Get Recommended Movies Based on Popularity", status = "success", solidHeader = TRUE, collapsible = TRUE,
-        div(class = "rateitems",
-            uiOutput('ratings2')
-        )
-    )
-  ),
-  fluidRow(
+  fillPage(
     useShinyjs(),
     box(
-      width = 12, status = "success", solidHeader = TRUE,
-      title = "Step 2: Discover books you might like",
-      br(),
-      withBusyIndicatorUI(
-        actionButton("btn", "Click here to get your recommendations", class = "btn-primary")
+      title = "Recommended Movies",
+      width = 12,
+      solidHeader = T,
+      status = "success",
+      class = "rateitems",
+      box(
+        uiOutput('selectRecommendation'),
+        fluidRow(
+          width = 12,
+          actionButton("btnSubmitRating", "Get Movies To Rate", class = "btn-primary"),
+          actionButton("btnResetRecommendation", "Submit Ratings and Get Recommendations", class = "btn-primary")
+        )
       ),
-      br(),
-      tableOutput("results2")
+      infoBox(
+        "",
+        value = "How to use this app",
+        subtitle = "Select which recommendation method to use: UBCF means User Based Collaborative filtering, and IBCF means Item Based Collaborative Filtering. Then click on \"Get Movies To Rate\" button to get a list of movies to be rated by you. Once done, click submit and get personalized movie recommendations!!",
+        icon = icon("lightbulb"),
+      ),
+      tags$div(id = "placeholder"),
+      uiOutput("recommendationResults2")
     )
   )
 )
@@ -75,7 +82,7 @@ body = dashboardBody(
   tabItems(tab1, tab2)
 )
 
-header = dashboardHeader(title = "Book Recommender")
+header = dashboardHeader(title = "Movie Recommender")
 
 shinyUI(
   dashboardPage(

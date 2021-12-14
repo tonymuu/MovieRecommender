@@ -4,26 +4,21 @@
 source('functions/cf_algorithm.R') # collaborative filtering
 source('functions/similarity_measures.R') # similarity measures
 source('scripts/preprocess.R')
-#source('scripts/recommender.R')
+source('scripts/recommender.R')
 
-
-withConsoleRedirect = function(containerId, expr) {
-  # Change type="output" to type="message" to catch stderr
-  # (messages, warnings, and errors) instead of stdout.
-  txt <- capture.output(results <- expr, type = "output")
-  if (length(txt) > 0) {
-    insertUI(paste0("#", containerId), where = "beforeEnd",
-             ui = paste0(txt, "\n", collapse = "")
-    )
-  }
-  results
-}
-
-num_rows <- 6
-num_movies <- 3
-
-getCurrentIndex = function(i, j) {
-  (i - 1) * num_movies + j
+get_user_ratings <- function(value_list) {
+  dat <- data.table(movie_id = sapply(strsplit(names(value_list), "_"), function(x) ifelse(length(x) > 1, x[[2]], NA)),
+                    rating = unlist(as.character(value_list)))
+  dat <- dat[!is.null(rating) & !is.na(movie_id)]
+  dat[rating == " ", rating := 0]
+  dat[, ':=' (movie_id = paste("m", movie_id, sep = ""), rating = as.numeric(rating))]
+  dat <- dat[rating > 0]
+  
+  idx = which(dat$movie_id %in% movieIDs)
+  new.ratings = rep(NA, n.item)
+  new.ratings[idx] = dat$rating
+  
+  new.ratings
 }
 
 shinyServer(function(input, output, session) {
@@ -48,48 +43,64 @@ shinyServer(function(input, output, session) {
   
   output$selectRecommendation <- renderUI({
     radioButtons(
-      "selectSortBy",
-      "Sort By",
-      c("Popularity", "Average Rating")
+      "selectRecommendation",
+      "Recommendation Method",
+      c("UBCF", "IBCF")
     )
   })
   
+  handleButtonResetRecommendation <- eventReactive(input$btnSubmitRating, {
+    removeUI("#recomm")
+    
+    moviesToRate = getRecommendedGenreMovies("", "Popularity")
+    getMovieRatingTiles(moviesToRate)
+  })
+  
+  observeEvent(input$btnResetRecommendation, {
+    removeUI("#recomm")
+    
+    # Get personalized recommendations
+    value_list <- reactiveValuesToList(input)
+    user_ratings <- get_user_ratings(value_list)
+    cat(str(input$selectRecommendation))
+    movies = getRecommendedMovies(user_ratings, input$selectRecommendation)
+
+    insertUI(
+      "#placeholder",
+      "afterEnd",
+      ui = div(
+        id = 'recomm',
+        box(
+          width = 12,
+          title = "We found these movies that you might like",
+          getMovieTiles(movies)
+        )
+      )
+    )
+  })
 
   # Calculate recommendations when the sbumbutton is clicked
-  df <- eventReactive(
+  handleEventGenreFilterChange <- eventReactive(
     {
       input$selectGenre
       input$selectSortBy
     },
     {
-      # get the user's rating data
       getRecommendedGenreMovies(input$selectGenre, input$selectSortBy)
-    })
+    }
+  )
 
   # display the recommendations
-  output$debug <- renderUI({
-    recom_result <- df()
-
-    lapply(1:num_rows, function(i) {
-      list(
-        fluidRow(
-          br(),
-          lapply(1:num_movies, function(j) {
-            idx = getCurrentIndex(i, j)
-            cat(recom_result$image_url[idx])
-            apputils::infoBox(
-              recom_result$Genres[idx],
-              value = recom_result$Title[idx],
-              subtitle = paste(round(recom_result$ave_ratings[idx], digits = 1), "/ 5.0 out of ", recom_result$ratings_per_movie[idx]," reviews"),
-              icon = apputils::icon(list(src = recom_result$image_url[idx]), class = "my-icon-123", lib = "local"),
-              fill = TRUE,
-              color = "white",
-              width = 4
-            )
-          }),
-          br()
-        )
-      ) # columns
-    }) # rows
+  output$recommendationResults1 <- renderUI({
+    getMovieTiles(handleEventGenreFilterChange())
+  })
+  
+  # show the movies to be rated
+  output$recommendationResults2 <- renderUI({
+    box(
+      width = 12,
+      title = "Rate these movies to get movie recommendations based on your preference",
+      handleButtonResetRecommendation()
+    )
   })
 }) # server function
